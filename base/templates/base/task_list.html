@@ -1,0 +1,84 @@
+{% extends 'base/main.html' %} {% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<div class="header-bar">
+    <div>
+        <h1>Hello {{request.user|title}}</h1>
+        <h3 style="margin:0">You have <i>{{count}}</i> incomplete task{{ count|pluralize:"s" }}</h3>
+    </div>
+
+    {% if request.user.is_authenticated %}
+    <a href="{% url 'logout' %}">Logout</a> {% else %}
+    <a href="{% url 'login' %}">Login</a> {% endif %}
+</div>
+
+
+<div id="search-add-wrapper">
+    <form method="GET" style="display: flex;">
+        <input type='text' name='search-area' placeholder="Search your task" value="{{search_input}}">
+        <input class="button" type="submit" value='Search'>
+    </form>
+    {% if tasks|length > 0 %}
+    <a id="add-link" href="{% url 'task-create' %}">&#x2b;</a>
+    {% endif %}
+</div>
+
+
+<!-- Hidden form. Form submits new item positions -->
+<form style="display: none;" id="reorderForm" method="post" action="{% url 'task-reorder' %}">
+    {% csrf_token %}
+    <input type="hidden" id="positionInput" name="position">
+</form>
+
+
+<div id="tasklist" class="task-items-wrapper">
+    {% for task in tasks %}
+    <div class="task-wrapper" data-position="{{task.pk}}">
+        <div class="task-title">
+            {% if task.complete %}
+            <div class="task-complete-icon"></div>
+            <i><s><a href="{% url 'task-update' task.id %}">{{task}}</a></s></i> {% else %}
+            <div class="task-incomplete-icon"></div>
+            <a href="{% url 'task-update' task.id %}">{{task}}</a> {% endif %}
+        </div>
+        <div class="task-controls">
+            <a class="delete-link" href="{% url 'task-delete' task.id %}">&#215;</a>
+            <span class="handle">&nbsp;&#10247;</span>
+        </div>
+    </div>
+
+    {% empty %}
+    <div style="text-align: center; padding-bottom: 10px; line-height: 1em;">
+        <h3>No new tasks are created.</h3>
+        <h3>Create a <a style="text-decoration: none; color: #e53935;" href="{% url 'task-create' %}">New task</a> ! </h3>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    var taskList = document.getElementById("tasklist");
+    var reorderForm = document.getElementById("reorderForm");
+    var positionInput = document.getElementById("positionInput");
+
+    let sortable = Sortable.create(taskList, {
+        handle: '.handle',
+        ghostClass: 'dropArea',
+        chosenClass: 'selectedTask',
+
+    });
+
+    function reordering() {
+        const rows = document.getElementsByClassName("task-wrapper");
+        let pos = [];
+        for (let row of rows) {
+            pos.push(row.dataset.position);
+        }
+        console.log(pos.join(","))
+        positionInput.value = pos.join(',');
+        reorderForm.submit();
+    }
+
+    document.ondrop = reordering
+</script>
+
+{% endblock content %}
